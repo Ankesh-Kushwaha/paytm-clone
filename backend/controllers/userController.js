@@ -42,7 +42,7 @@ const userSignUp = async (req, res) => {
     await newUser.save();
 
     // Create the JWT token
-    const token = jsonwebtoken.sign({
+    const token = jwt.sign({
       userId: newUser._id,
       userName: body.userName,
       email: body.email
@@ -50,7 +50,6 @@ const userSignUp = async (req, res) => {
       expiresIn: '1h'
     });
 
-    console.log(token);
 
     // Send the response
     return res.status(200).json({
@@ -180,11 +179,68 @@ const updateUserData = async (req, res) => {
 };
 
 //implement the global search here to find the user based on the data provided by the fronted user
+const searchGlobal = async (req, res) => {
+  const filter = req.query.filter || " ";
+  if (filter === " ") {
+    return res.json({
+       user:[],
+    })
+  }
 
+  const users = await User.find({
+    $or: [
+      {
+        firstName:{$regex:filter},   
+      },
+      {
+        lastName:{$regex:filter},    
+      }
+       ]
+  })
+ 
+
+
+  res.status(200).json({
+    users: users.map(user => ({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      _id:user._id,
+     }))
+  })
+}
+
+const deleteUser = async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId) {
+    return res.status(403).json({
+      success: true,
+      message:"please provide an userId to delete the user"
+     })
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(403).json({
+      success: false,
+      message:"user does not exist.Please provide a valid id"
+     })
+  }
+  else {
+    //delete the user 
+    await User.findByIdAndDelete(userId);
+    res.status(200).json({
+      success: true,
+      message:"user deleted successFully !"
+    })
+  }
+}
+  
 
 module.exports = {
   userSignUp,
   userLogin,
   getAllUsers,
-  updateUserData
+  updateUserData,
+  searchGlobal,
+  deleteUser
 }
