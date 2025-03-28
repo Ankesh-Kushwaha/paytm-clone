@@ -20,6 +20,7 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const decode = jwt.verify(token, process.env.JWT_SECRET_KEY); //verify the token
+    req.userId = decode.userId;
     next(); //call for the next middleware;
   }
   catch (err) {
