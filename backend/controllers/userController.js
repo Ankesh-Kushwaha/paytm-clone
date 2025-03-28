@@ -1,68 +1,66 @@
 const User = require('../schema/user');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { zodUserSchemaSignUp,zodUserSchemaSignIn,zodSchemaUpdate } = require('../utils/zodverification')
 const authMiddleware = require('../middleware/authmiddleware');
 const jwt = require('jsonwebtoken');
+const Account = require('../schema/account');
 
 
 const userSignUp = async (req, res) => {
   try {
-    const body = req.body;
-    const { success } = zodUserSchemaSignUp.safeParse(body); // check the zod verification
-    if (!success) {
-      return res.status(400).json({
-        success: false,
-        message: "User data is invalid. Please try again"
-      });
+    const { userName, firstName, lastName, password, email } = req.body;
+    // Validate user input using Zod
+    const { success } = zodUserSchemaSignUp.safeParse(req.body);
+     if (!success) {
+    return res.status(400).json({ success: false, message: "Invalid input data" });
     }
-
-    // 🔴 FIXED: Use await to get the actual user
-    const user = await User.findOne({ email: body.email }); 
-    if (user) {
-      return res.status(400).json({
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email:email });
+    if (existingUser) {
+      return res.status(402).json({
         success: false,
         message: "User already exists",
       });
     }
 
-    // If the user is not found, proceed with hashing password
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = await bcrypt.hash(body.password, salt);
+    // FIX: Await the salt generation
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
 
-    // Create a new user
+    // Create the new user
     const newUser = new User({
-      userName: body.userName,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email,
-      password: hashedPassword
+      userName,
+      firstName,
+      lastName,
+      password: hashPassword, // Hashed password
+      email,
     });
 
-    // Save the newly created user
     await newUser.save();
 
-    // Create the JWT token
-    const token = jwt.sign({
-      userId: newUser._id,
-      userName: body.userName,
-      email: body.email
-    }, process.env.JWT_SECRET_KEY, {
-      expiresIn: '1h'
+    const userId = newUser._id;
+
+    //Create an account with a random balance
+    const newAccount=new Account({
+      userId,
+      balance: 1 + Math.random() * 1000,
     });
 
+    await newAccount.save();
 
-    // Send the response
     return res.status(200).json({
       success: true,
-      message: "User created successfully",
-      data: token,
+      message: "User created successfully!",
     });
 
   } catch (err) {
-    console.log("error:", err);
+    console.error("Error while signUp:", err);
     res.status(500).json({
       success: false,
-      message: "Something went wrong. Please try again later.",
+      message: "Error while signing up",
+      error: err.message,
     });
   }
 };
@@ -234,7 +232,6 @@ const deleteUser = async (req, res) => {
     })
   }
 }
-  
 
 module.exports = {
   userSignUp,
@@ -242,5 +239,5 @@ module.exports = {
   getAllUsers,
   updateUserData,
   searchGlobal,
-  deleteUser
+  deleteUser,
 }

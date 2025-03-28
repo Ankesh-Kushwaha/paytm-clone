@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 const userRoutes=require('./routes/userRoutes')
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const AccountRoutes = require('./routes/accountRoutes');
 
 //middlewares
 app.use(cors());
@@ -16,6 +17,7 @@ connectToDb(); //database connection
 
 //routes
 app.use('/api/v1', userRoutes);
+app.use('/account', AccountRoutes);
 
 
 
