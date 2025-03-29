@@ -42,6 +42,14 @@ const userSignUp = async (req, res) => {
 
     const userId = newUser._id;
 
+    //create the jwt token 
+  const token = jwt.sign({
+      userId: newUser._id,
+       }, process.env.JWT_SECRET_KEY, {
+         expiresIn: '1h'
+    });
+
+
     //Create an account with a random balance
     const newAccount=new Account({
       userId,
@@ -53,6 +61,7 @@ const userSignUp = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User created successfully!",
+      token:token,
     });
 
   } catch (err) {
